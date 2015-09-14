@@ -297,7 +297,7 @@ def calculateMeshInertia(reference, data, mass):
                                            (verts[0][1] + verts[1][1] + verts[2][1] + reference[1]) / 4,
                                            (verts[0][2] + verts[1][2] + verts[2][2] + reference[2]) / 4))
 
-        tetrahedra.append({'volume': volume, 'det(J)': det_J, 'J': J, 'centre_of_mass': centre_of_mass})
+        tetrahedra.append({'volume': volume, 'det(J)': det_J, 'J': J, 'com': centre_of_mass})
         mesh_volume += volume
 
     d = mass / mesh_volume
@@ -349,20 +349,25 @@ def calculateMeshInertia(reference, data, mass):
 
         #tetrahedron['inertia'] = inertiaListToMatrix([a, -b_bar, -c_bar, b, -a_bar, c])
         tetrahedron['inertia'] = [a, -b_bar, -c_bar, b, -a_bar, c]
+        #print('\n', tetrahedron['inertia'])
 
-        if first:
-            current_body = tetrahedron
-            first = False
-        else:
-            mass, cog, inertia = compound_inertia_analysis_3x3([{'mass': current_body['mass'],
-                                                                 'com': current_body['centre_of_mass'],
-                                                                 'inertia': current_body['inertia']},
-                                                                {'mass': tetrahedron['mass'],
-                                                                 'com': tetrahedron['centre_of_mass'],
-                                                                 'inertia': tetrahedron['inertia']}])
+        #if first:
+        #    current_body = tetrahedron
+        #    first = False
+        #else:
+        #    mass, cog, inertia = compound_inertia_analysis_3x3([{'mass': current_body['mass'],
+        #                                                         'com': current_body['centre_of_mass'],
+        #                                                         'inertia': current_body['inertia']},
+        #                                                        {'mass': tetrahedron['mass'],
+        #                                                         'com': tetrahedron['centre_of_mass'],
+        #                                                         'inertia': tetrahedron['inertia']}])
 
-            current_body = {'mass': mass, 'centre_of_mass': cog, 'inertia': inertia}
+         #   current_body = {'mass': mass, 'centre_of_mass': cog, 'inertia': inertia}
 
+    #print(tetrahedra)
+    comb_mass, cog, inertia = compound_inertia_analysis_3x3(tetrahedra)
+    #print('cog:', cog)
+    current_body = {'mass': comb_mass, 'centre_of_mass': cog, 'inertia': inertia}
     i = current_body['inertia']
     return i[0][0], i[0][1], i[0][2], i[1][1], i[1][2], i[2][2]
 
@@ -532,11 +537,12 @@ def createInertials(link, empty=False, preserve_children=False):
                         bpy.context.scene.objects.active = obj
                         # TODO: reference point should be arbitrary but there may be smarter choices
                         inert = calculateMeshInertia(mathutils.Vector((0, 0, 0)), obj.data, mass)
-                        #print('mesh:', inert)
+                        print('mesh:', inert)
                         #print('ellipsoid:', calculateEllipsoidInertia(mass, geometry['size']))
                         #print('box:', calculateBoxInertia(mass, geometry['size']))
                     else:
                         inert = calculateInertia(mass, geometry)
+                        print('prim:', inert)
                     if inert is not None:
                         inertial = createInertial(obj)
                         inertial['mass'] = mass
@@ -597,8 +603,12 @@ def shift_cog_inertia_3x3(mass, cog, inertia_cog, ref_point=mathutils.Vector((0.
     """
     # diff_vec
     c               = cog - ref_point
+    #print('c:', c)
     c_outer         = generalUtils.outerProduct(c, c)
+    #print('c_outer:', c_outer)
+    #print('c x c:', c.dot(c))
     inertia_ref    = inertia_cog + mass * (c.dot(c) * mathutils.Matrix.Identity(3) - c_outer)
+    #print(inertia_ref)
 
     return inertia_ref
 
@@ -642,17 +652,22 @@ def compound_inertia_analysis_3x3(objects):
 
     shifted_inertias = list()
     for obj in objects:
+        #print(obj)
         if 'rot' in obj and not obj['rot'] == mathutils.Matrix.Identity(3): #if object is rotated in local space
+            #print(obj['rot'])
             objinertia = spin_inertia_3x3(inertiaListToMatrix(obj['inertia']), obj['rot']) #transform inertia to link space
         else:
             objinertia = inertiaListToMatrix(obj['inertia']) # keep inertia
         inert_i_at_common_cog = shift_cog_inertia_3x3(obj['mass'], obj['com'], objinertia, common_cog)
         shifted_inertias.append(inert_i_at_common_cog)
+        #print('before:', objinertia)
+        #print('after:', inert_i_at_common_cog)
 
     total_inertia_at_common_cog = mathutils.Matrix.Identity(3)
     total_inertia_at_common_cog.zero()
     for inertia in shifted_inertias:
         total_inertia_at_common_cog = total_inertia_at_common_cog + inertia
+    print('inertia:', total_inertia_at_common_cog, '\n')
 
     return total_mass, common_cog, total_inertia_at_common_cog
 
