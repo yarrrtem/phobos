@@ -321,7 +321,17 @@ def calculateMeshInertia(reference, data, mass):
         y4 = J[3][1]
         z4 = J[3][2]
 
-        abs_det_J = abs(tetrahedron['det(J)'])
+        print('x1:', x1)
+        print('z1:', z1)
+        print('x1:', x2)
+        print('z1:', z2)
+        print('x1:', x3)
+        print('z1:', z3)
+        print('x1:', x4)
+        print('z1:', z4)
+
+        abs_det_J = tetrahedron['det(J)']
+        print(abs_det_J)
 
         a = d * abs_det_J * (y1**2 + y1*y2 + y2**2 + y1*y3 + y2*y3 + y3**2
             + y1*y4 + y2*y4 + y3*y4 + y4**2 + z1**2 + z1*z2 + z2**2 + z1*z3
@@ -349,7 +359,7 @@ def calculateMeshInertia(reference, data, mass):
 
         #tetrahedron['inertia'] = inertiaListToMatrix([a, -b_bar, -c_bar, b, -a_bar, c])
         tetrahedron['inertia'] = [a, -b_bar, -c_bar, b, -a_bar, c]
-        #print('\n', tetrahedron['inertia'])
+        print('\n', tetrahedron['inertia'])
 
         #if first:
         #    current_body = tetrahedron
