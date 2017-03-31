@@ -1159,6 +1159,32 @@ class CreateMimicJointOperator(Operator):
                 and len(objs) > 1)
 
 
+# TODO what is the use of this operator? Still needed?
+class DefineEntityOperator(Operator):
+    """Defines an entity by setting properties in active object"""
+    bl_idname = "phobos.define_entity"
+    bl_label = "Define Entity"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    entityname = StringProperty(
+        name="entity/name",
+        default="",
+        description="Name of the entity")
+
+    entitytype = StringProperty(
+        name="entity/type",
+        default="",
+        description="Type of the entity")
+
+    # TODO add poll and maybe invoke functions
+    def execute(self, context):
+        entity = bpy.context.active_object
+        if entity:
+            entity['entity/name'] = self.entityname
+            entity['entity/type'] = self.entitytype
+        return {'FINISHED'}
+
+
 def register():
     print("Registering operators.editing...")
     for key, classdef in inspect.getmembers(sys.modules[__name__], inspect.isclass):
