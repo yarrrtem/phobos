@@ -277,8 +277,18 @@ class ImportModelOperator(bpy.types.Operator):
         Returns:
 
         """
-        log("Importing " + self.filepath + ' as ' + self.entitytype, "INFO")
-        model = entity_io.entity_types[self.entitytype]['import'](self.filepath)
+        filepath = self.filepath
+
+        # infer entitytpe from the filepath to avoid dropdown selection errors
+        extension = filepath.split('.')[-1].lower()
+        entitytype = self.entitytype
+        if extension in ['sdf', 'urdf']:
+            log("Inferring entitytpe {entitytype} from file extension.".format(entitytype=entitytype), "INFO")
+            entitytype = extension
+            self.entitytype = extension
+
+        log("Importing {filepath} as {entitytype}".format(filepath=filepath, entitytype=entitytype), "INFO")
+        model = entity_io.entity_types[entitytype]['import'](filepath)
         # bUtils.cleanScene()
         models.buildModelFromDictionary(model)
         for layer in ['link', 'inertial', 'visual', 'collision', 'sensor']:
