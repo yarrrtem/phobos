@@ -21,7 +21,7 @@ import phobos.model.materials as matModel
 import phobos.utils.general as gUtils
 import phobos.utils.io as ioUtils
 from phobos.phoboslog import log
-
+from phobos.utils import blender as bUtils
 
 def sort_urdf_elements(elems):
     """Sort a collection of elements. By default, this method simply wraps the standard
@@ -720,22 +720,16 @@ def parseLink(link, urdffilepath):
             # gather mesh information
             if geometry[0].tag == 'mesh':
                 # interpret filename
-                filename = geometry[0].attrib['filename']
-                filepath = path.normpath(path.join(path.dirname(urdffilepath), filename))
-                log(
-                    "     Filepath for element "
-                    + elementname
-                    + ': '
-                    + path.relpath(filepath, start=urdffilepath),
-                    'DEBUG',
-                )
 
-                # Remove 'urdf/package://{package_name}' to workaround the lack of rospack here,
-                # assuming the urdf file is in the 'urdf' folder and meshes are in the 'meshes'
-                # folder at the same level.
-                if 'package://' in filepath:
-                    filepath = re.sub(r'(.*)urdf/package://([^/]+)/(.*)', '\\1\\3', filepath)
+                filename = geometry[0].attrib['filename']
+
+                # Some URDFs use rospack "package://" or "urdf/package://"
+                # We'll assume the package root is in Phobos models dir
+                filename = filename.split('package://')[-1]
+                phobos_models = bUtils.getPhobosPreferences().modelsfolder
+                filepath = path.join(phobos_models, filename)
                 elementdict['geometry']['filename'] = filepath
+                log("Filepath for {element} mesh: {path}".format(element=elementname, path=filepath), 'DEBUG')
 
                 # read scale
                 if 'scale' in geometry[0].attrib:
